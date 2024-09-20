@@ -12,6 +12,7 @@ jobs:
       - run:
           name: Log in to Docker Hub
           command: docker login -u $DOCKER_USERNAME -p $DOCKER_PERSONAL_ACCESS_TOKEN
+      - setup_remote_docker
       - run:
           name: Build and Push AMD64 Image
           command: |
@@ -33,6 +34,7 @@ jobs:
       - run:
           name: Log in to Docker Hub
           command: docker login -u $DOCKER_USERNAME -p $DOCKER_PERSONAL_ACCESS_TOKEN
+      - setup_remote_docker
       - run:
           name: Build and Push ARM64 Image
           command: |
@@ -50,6 +52,7 @@ jobs:
       - run:
           name: Log in to Docker Hub
           command: docker login -u $DOCKER_USERNAME -p $DOCKER_PERSONAL_ACCESS_TOKEN 
+      - setup_remote_docker
       - run:
           name: Create and Push Multi-Platform Manifest
           command: |
