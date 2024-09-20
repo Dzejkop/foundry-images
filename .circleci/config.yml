@@ -1,0 +1,70 @@
+version: 2.1
+
+jobs:
+  build_amd64:
+    docker:
+      - image: cimg/base:stable
+    resource_class: medium
+    steps:
+      - run:
+          name: Clone Foundry Repository
+          command: git clone https://github.com/foundry-rs/foundry.git
+      - run:
+          name: Log in to Docker Hub
+          command: echo $DOCKER_PASSWORD | docker login -u $DOCKER_USERNAME --password-stdin
+      - run:
+          name: Build and Push AMD64 Image
+          command: |
+            cd foundry
+            docker buildx create --use
+            docker buildx build \
+              --platform linux/amd64 \
+              -t dzejkop/foundry-images:amd64 \
+              --push .
+
+  build_arm64:
+    docker:
+      - image: cimg/base:stable
+    resource_class: arm.medium
+    steps:
+      - run:
+          name: Clone Foundry Repository
+          command: git clone https://github.com/foundry-rs/foundry.git
+      - run:
+          name: Log in to Docker Hub
+          command: echo $DOCKER_PASSWORD | docker login -u $DOCKER_USERNAME --password-stdin
+      - run:
+          name: Build and Push ARM64 Image
+          command: |
+            cd foundry
+            docker buildx create --use
+            docker buildx build \
+              --platform linux/arm64 \
+              -t dzejkop/foundry-images:arm64 \
+              --push .
+
+  create_and_push_manifest:
+    docker:
+      - image: cimg/base:stable
+    steps:
+      - run:
+          name: Log in to Docker Hub
+          command: echo $DOCKER_PASSWORD | docker login -u $DOCKER_USERNAME --password-stdin
+      - run:
+          name: Create and Push Multi-Platform Manifest
+          command: |
+            docker manifest create dzejkop/foundry-images:latest \
+              --amend dzejkop/foundry-images:amd64 \
+              --amend dzejkop/foundry-images:arm64
+            docker manifest push dzejkop/foundry-images:latest
+
+workflows:
+  build_and_push:
+    jobs:
+      - build_amd64
+      - build_arm64
+      - create_and_push_manifest:
+          requires:
+            - build_amd64
+            - build_arm64
+

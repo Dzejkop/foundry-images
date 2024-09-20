@@ -1,0 +1,40 @@
+name: Build and Push Foundry Docker Images
+
+on:
+  schedule:
+    - cron: '0 * * * *'  # Runs every hour
+  workflow_dispatch:
+
+jobs:
+  check_for_updates:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fetch Latest Foundry Commit Hash
+        run: |
+          LATEST_FOUNDY_COMMIT=$(git ls-remote https://github.com/foundry-rs/foundry.git refs/heads/main | awk '{print $1}')
+          echo "LATEST_FOUNDY_COMMIT=$LATEST_FOUNDY_COMMIT" >> $GITHUB_ENV
+
+      - name: Get Last Processed Commit Hash
+        id: last_commit
+        run: |
+          echo "LAST_PROCESSED_COMMIT=$(cat last_foundry_commit || echo 'none')" >> $GITHUB_ENV
+
+      - name: Check for New Commits
+        if: env.LATEST_FOUNDY_COMMIT != env.LAST_PROCESSED_COMMIT
+        run: |
+          echo "New commit detected."
+        else:
+          run: |
+            echo "No new commits. Exiting."
+            exit 0
+
+      - name: Update last_foundry_commit
+        if: env.LATEST_FOUNDY_COMMIT != env.LAST_PROCESSED_COMMIT
+        run: echo "$LATEST_FOUNDY_COMMIT" > last_foundry_commit
+
+      - name: Commit last_foundry_commit
+        if: env.LATEST_FOUNDY_COMMIT != env.LAST_PROCESSED_COMMIT
+        uses: stefanzweifel/git-auto-commit-action@v4
+        with:
+          commit_message: 'Update last_foundry_commit [skip ci]'
+          file_pattern: last_foundry_commit
