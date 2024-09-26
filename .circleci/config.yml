@@ -92,12 +92,11 @@ jobs:
       - run:
           name: Create and Push Multi-Arch Image
           command: |
-            docker manifest create dzejkop/foundry:latest \
-              dzejkop/foundry:amd64 \
-              dzejkop/foundry:arm64
-            docker manifest annotate dzejkop/foundry:latest dzejkop/foundry:amd64 --os linux --arch amd64
-            docker manifest annotate dzejkop/foundry:latest dzejkop/foundry:arm64 --os linux --arch arm64
+            docker buildx imagetools create \
+              --tag dzejkop/foundry:latest \
+              dzejkop/foundry:arm64 dzejkop/foundry:amd64
             docker manifest push dzejkop/foundry:latest
+
 
 workflows:
   build_and_push:
