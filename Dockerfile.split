@@ -1,0 +1,86 @@
+# syntax=docker/dockerfile:1.4
+
+# ----------------------
+# Build Stage
+# ----------------------
+FROM rust:slim-bullseye AS build
+
+# Install dependencies
+RUN apt-get update && apt-get install -y \
+    clang \
+    lld \
+    build-essential \
+    pkg-config \
+    git \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+# Set the working directory
+WORKDIR /opt/foundry
+
+# Copy the source code
+COPY . .
+
+# Build the binaries with MUSL for static linking
+RUN cargo build --release \
+    --features foundry-cast/aws-kms,forge/aws-kms
+
+# Collect the binaries
+RUN mkdir -p /opt/foundry/out && \
+    cp target/release/forge /opt/foundry/out/forge && \
+    cp target/release/cast /opt/foundry/out/cast && \
+    cp target/release/anvil /opt/foundry/out/anvil && \
+    cp target/release/chisel /opt/foundry/out/chisel && \
+    strip /opt/foundry/out/*
+
+# ----------------------
+# Forge Image
+# ----------------------
+FROM gcr.io/distroless/cc AS forge
+COPY --from=build /opt/foundry/out/forge /usr/local/bin/forge
+ENTRYPOINT ["/usr/local/bin/forge"]
+LABEL org.label-schema.name="Forge" \
+      org.label-schema.description="Forge Binary" \
+      org.label-schema.url="https://getfoundry.sh" \
+      org.label-schema.vcs-url="https://github.com/foundry-rs/foundry.git" \
+      org.label-schema.version=$VERSION \
+      org.label-schema.schema-version="1.0"
+
+# ----------------------
+# Cast Image
+# ----------------------
+FROM gcr.io/distroless/cc AS cast
+COPY --from=build /opt/foundry/out/cast /usr/local/bin/cast
+ENTRYPOINT ["/usr/local/bin/cast"]
+LABEL org.label-schema.name="Cast" \
+      org.label-schema.description="Cast Binary" \
+      org.label-schema.url="https://getfoundry.sh" \
+      org.label-schema.vcs-url="https://github.com/foundry-rs/foundry.git" \
+      org.label-schema.version=$VERSION \
+      org.label-schema.schema-version="1.0"
+
+# ----------------------
+# Anvil Image
+# ----------------------
+FROM gcr.io/distroless/cc AS anvil
+COPY --from=build /opt/foundry/out/anvil /usr/local/bin/anvil
+ENTRYPOINT ["/usr/local/bin/anvil"]
+LABEL org.label-schema.name="Anvil" \
+      org.label-schema.description="Anvil Binary" \
+      org.label-schema.url="https://getfoundry.sh" \
+      org.label-schema.vcs-url="https://github.com/foundry-rs/foundry.git" \
+      org.label-schema.version=$VERSION \
+      org.label-schema.schema-version="1.0"
+
+# ----------------------
+# Chisel Image
+# ----------------------
+FROM gcr.io/distroless/cc AS chisel
+COPY --from=build /opt/foundry/out/chisel /usr/local/bin/chisel
+ENTRYPOINT ["/usr/local/bin/chisel"]
+LABEL org.label-schema.name="Chisel" \
+      org.label-schema.description="Chisel Binary" \
+      org.label-schema.url="https://getfoundry.sh" \
+      org.label-schema.vcs-url="https://github.com/foundry-rs/foundry.git" \
+      org.label-schema.version=$VERSION \
+      org.label-schema.schema-version="1.0"
