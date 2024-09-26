@@ -5,68 +5,96 @@ jobs:
     docker:
       - image: cimg/base:current
     resource_class: large
+    environment:
+      DOCKER_CLI_EXPERIMENTAL: "enabled"
     steps:
+      - checkout
       - run:
           name: Clone Foundry Repository
           command: git clone https://github.com/foundry-rs/foundry.git
       - run:
-          name: Checkout
+          name: Clone Foundry Images Repository
           command: git clone https://github.com/Dzejkop/foundry-images.git
-      - run:
-          name: Log in to Docker Hub
-          command: docker login -u $DOCKER_USERNAME -p $DOCKER_PERSONAL_ACCESS_TOKEN
       - setup_remote_docker
       - run:
-          name: Build and Push AMD64 Image
+          name: Build AMD64 Image
           command: |
             cd foundry
-            docker buildx create --use
             docker buildx build \
               --platform linux/amd64 \
+              --load \
               --file ../foundry-images/Dockerfile.debian \
               -t dzejkop/foundry:amd64 \
-              --push .
+              .
+      - run:
+          name: Save AMD64 Image
+          command: |
+            docker save dzejkop/foundry:amd64 -o foundry_amd64.tar
+      - persist_to_workspace:
+          root: .
+          paths:
+            - foundry_amd64.tar
 
   build_arm64:
     docker:
       - image: cimg/base:current
     resource_class: arm.large
+    environment:
+      DOCKER_CLI_EXPERIMENTAL: "enabled"
     steps:
+      - checkout
       - run:
           name: Clone Foundry Repository
           command: git clone https://github.com/foundry-rs/foundry.git
       - run:
-          name: Checkout
+          name: Clone Foundry Images Repository
           command: git clone https://github.com/Dzejkop/foundry-images.git
-      - run:
-          name: Log in to Docker Hub
-          command: docker login -u $DOCKER_USERNAME -p $DOCKER_PERSONAL_ACCESS_TOKEN
       - setup_remote_docker
       - run:
-          name: Build and Push ARM64 Image
+          name: Build ARM64 Image
           command: |
             cd foundry
-            docker buildx create --use
             docker buildx build \
               --platform linux/arm64 \
+              --load \
               --file ../foundry-images/Dockerfile.debian \
               -t dzejkop/foundry:arm64 \
-              --push .
+              .
+      - run:
+          name: Save ARM64 Image
+          command: |
+            docker save dzejkop/foundry:arm64 -o foundry_arm64.tar
+      - persist_to_workspace:
+          root: .
+          paths:
+            - foundry_arm64.tar
 
   create_and_push_manifest:
     docker:
       - image: cimg/base:stable
+    environment:
+      DOCKER_CLI_EXPERIMENTAL: "enabled"
     steps:
-      - run:
-          name: Log in to Docker Hub
-          command: docker login -u $DOCKER_USERNAME -p $DOCKER_PERSONAL_ACCESS_TOKEN
+      - attach_workspace:
+          at: .
       - setup_remote_docker
       - run:
-          name: Create and Push Multi-Platform Manifest
+          name: Load AMD64 Image
+          command: docker load -i foundry_amd64.tar
+      - run:
+          name: Load ARM64 Image
+          command: docker load -i foundry_arm64.tar
+      - run:
+          name: Log in to Docker Hub
+          command: echo $DOCKER_PERSONAL_ACCESS_TOKEN | docker login -u $DOCKER_USERNAME --password-stdin
+      - run:
+          name: Create and Push Multi-Arch Image
           command: |
             docker manifest create dzejkop/foundry:latest \
-              --amend dzejkop/foundry:amd64 \
-              --amend dzejkop/foundry:arm64
+              dzejkop/foundry:amd64 \
+              dzejkop/foundry:arm64
+            docker manifest annotate dzejkop/foundry:latest dzejkop/foundry:amd64 --os linux --arch amd64
+            docker manifest annotate dzejkop/foundry:latest dzejkop/foundry:arm64 --os linux --arch arm64
             docker manifest push dzejkop/foundry:latest
 
 workflows:
@@ -78,4 +106,3 @@ workflows:
           requires:
             - build_amd64
             - build_arm64
-
