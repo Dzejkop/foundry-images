@@ -23,6 +23,7 @@ jobs:
             docker buildx build \
               --platform linux/amd64 \
               --load \
+              --single-platform \
               --file ../foundry-images/Dockerfile.debian \
               -t dzejkop/foundry:amd64 \
               .
@@ -57,6 +58,7 @@ jobs:
             docker buildx build \
               --platform linux/arm64 \
               --load \
+              --single-platform \
               --file ../foundry-images/Dockerfile.debian \
               -t dzejkop/foundry:arm64 \
               .
