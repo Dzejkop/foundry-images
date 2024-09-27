@@ -2,11 +2,11 @@ name: Track
 
 on:
   schedule:
-    - cron: "*/5 * * * *" # Runs every 5 minutes
+    - cron: '*/5 * * * *' # Runs every 5 minutes
   workflow_dispatch:
 
 jobs:
-  run-git-tag-tracker:
+  track-tags:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -34,9 +34,8 @@ jobs:
           git config user.name github-actions
           git config user.email github-actions@github.com
 
-      # - name: Build and run Git Tag Tracker
-      #   run: |
-      #     cargo run
-      #   env:
-      #     REMOTE_REPO_URL: git@github.com:foundry-rs/foundry.git
-      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build and run Git Tag Tracker
+        run: |
+          cargo run
+        env:
+          REMOTE_REPO_URL: git@github.com:foundry-rs/foundry.git

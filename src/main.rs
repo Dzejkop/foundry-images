@@ -1,12 +1,10 @@
-use std::collections::{HashMap, HashSet};
-use std::io::Stdout;
+use std::collections::HashSet;
+use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
-use std::{clone, fs};
 
 use chrono::{DateTime, Utc};
 use clap::Parser;
-use eyre::ContextCompat;
 use serde::{Deserialize, Serialize};
 use tempfile::TempDir;
 
@@ -58,16 +56,10 @@ fn main() -> eyre::Result<()> {
         }
     }
 
-    // state.save(&args.state_file)?;
-
     Ok(())
 }
 
-fn create_and_push_commit(
-    state: &mut State,
-    args: &Args,
-    tag: &TagInfo,
-) -> eyre::Result<()> {
+fn create_and_push_commit(state: &mut State, args: &Args, tag: &TagInfo) -> eyre::Result<()> {
     state.tags.push(tag.clone());
     state.save(&args.state_file)?;
 
